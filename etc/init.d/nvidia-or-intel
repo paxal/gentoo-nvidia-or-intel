@@ -1,0 +1,32 @@
+#!/sbin/runscript
+# Copyright 1999-2011 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License, v2 or later
+# $Header: /var/cvsroot/gentoo-x86/sys-apps/dbus/files/dbus.initd,v 1.1 2011/11/05 13:56:10 ssuominen Exp $
+
+depend() {
+	before xdm
+}
+
+start() {
+	ebegin "Selecting correct Xorg configuration"
+  NBCARDS=`/usr/sbin/lspci | grep VGA | wc -l`
+  if [ "${NBCARDS}" -eq 1 ]; then
+    # Test that nvidia module exists
+    NVIDIA_KO=$(find /lib/modules/`uname -r` -name nvidia.ko)
+    if [ -z "${NVIDIA_KO}" ]; then
+      CONF=/etc/X11/nouveau.conf
+      modprobe nouveau
+      eselect opengl set nouveau
+    else
+      CONF=/etc/X11/nvidia.conf
+      eselect opengl set nvidia
+    fi
+  else
+    CONF=/etc/X11/intel.conf
+    eselect opengl set xorg-x11
+  fi
+  einfo "  Choosing ${CONF}"
+  ln -snf $CONF /etc/X11/xorg.conf.d/0-video.conf
+	eend $?
+}
+
